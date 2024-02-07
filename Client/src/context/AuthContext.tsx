@@ -6,7 +6,7 @@ type Props = {
 
 type IAuthContext = {
   authenticated: boolean;
-  setAuthenticated: (newState: boolean) => void;
+  setAuthenticated: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 const initialValue = {
@@ -18,7 +18,7 @@ const initialValue = {
 const AuthContext = createContext<IAuthContext>(initialValue);
 
 const AuthProvider = ({ children }: Props) => {
-  const [authenticated, setAuthenticated] = useState(
+  const [authenticated, setAuthenticated] = useState<boolean>(
     initialValue.authenticated
   );
 

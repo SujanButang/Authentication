@@ -17,7 +17,7 @@ import { makeRequest } from "@/utils/axios";
 import { handleError } from "@/utils/util";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import { Label } from "@radix-ui/react-label";
-import { useContext, useState } from "react";
+import React, { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const Login = () => {
@@ -40,7 +40,7 @@ const Login = () => {
     setLoginData({ ...loginData, [e.target.id]: e.target.value });
   };
 
-  const { setAuthenticated } = useContext(AuthContext);
+  const { authenticated,setAuthenticated } = useContext(AuthContext);
 
   /**
    * Handles the login process by sending a POST request to the '/auth/login' endpoint.
@@ -52,10 +52,11 @@ const Login = () => {
       setLoading(true);
       const response = await makeRequest.post("/auth/login", loginData);
       setAuthenticated(true);
+      console.log(authenticated)
+      navigate("/");
       localStorage.setItem("accessToken", response.data.accessToken);
       localStorage.setItem("refreshToken", response.data.refreshToken);
       setLoading(false);
-      navigate("/");
     } catch (error) {
       handleError(error);
       setLoading(false);

@@ -13,18 +13,21 @@ import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { handleError } from "@/utils/util";
+import { useNavigate } from "react-router-dom";
 
 const VerifyEmailModal = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [otpSent, setOtpSent] = useState<boolean>(false);
   const [otp, setOtp] = useState<string>("");
 
+  const navigate = useNavigate();
+
   /**
- * Initiates the process of sending a One-Time Password (OTP) for email verification.
- * Sets loading state to true during the asynchronous operation.
- * On success, displays a success toast and updates the state to indicate that the OTP has been sent.
- * On failure, handles the error, displays an error toast, and sets loading state to false.
- */
+   * Initiates the process of sending a One-Time Password (OTP) for email verification.
+   * Sets loading state to true during the asynchronous operation.
+   * On success, displays a success toast and updates the state to indicate that the OTP has been sent.
+   * On failure, handles the error, displays an error toast, and sets loading state to false.
+   */
   const sendOtp = async () => {
     try {
       setLoading(true);
@@ -41,12 +44,12 @@ const VerifyEmailModal = () => {
   };
 
   /**
- * Initiates the process of verifying the One-Time Password (OTP) for email confirmation.
- * Sets loading state to true during the asynchronous operation.
- * Sends a POST request to the '/auth/verifyOtp' endpoint with the provided OTP.
- * On success, displays a success toast with the response data.
- * On failure, handles the error, displays an error toast, and sets loading state to false.
- */
+   * Initiates the process of verifying the One-Time Password (OTP) for email confirmation.
+   * Sets loading state to true during the asynchronous operation.
+   * Sends a POST request to the '/auth/verifyOtp' endpoint with the provided OTP.
+   * On success, displays a success toast with the response data.
+   * On failure, handles the error, displays an error toast, and sets loading state to false.
+   */
   const verifyEmail = async () => {
     try {
       setLoading(true);
@@ -55,6 +58,7 @@ const VerifyEmailModal = () => {
         description: response.data,
       });
       setLoading(false);
+      navigate("/")
     } catch (error) {
       handleError(error);
       setLoading(false);
@@ -64,8 +68,10 @@ const VerifyEmailModal = () => {
   return (
     <DialogContent className="w-[800px]">
       <DialogHeader>
-        <DialogTitle>Change Password</DialogTitle>
-        <DialogDescription>Enter passwords to change </DialogDescription>
+        <DialogTitle>Verify Email</DialogTitle>
+        <DialogDescription>
+          Click on the Request otp button to get your otp.{" "}
+        </DialogDescription>
       </DialogHeader>
       <div className="grid gap-4 py-4">
         <div className="grid grid-cols-4 items-center gap-4">

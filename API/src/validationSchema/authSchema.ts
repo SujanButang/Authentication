@@ -34,6 +34,12 @@ export const emailSchema = Joi.object({
   }),
 });
 
+export const emailVerificationSchema = Joi.object({
+  otp: Joi.number().required().messages({
+    "any.required": "Otp is required! ☹️",
+  }),
+});
+
 export const otpSchema = Joi.object({
   email: Joi.string().email().required().messages({
     "any.required": "Email is required",

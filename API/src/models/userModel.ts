@@ -6,7 +6,6 @@ export interface IUser extends Document {
   username: string;
   emailVerified: boolean;
   otp: number | null;
-  profileImage: string;
   resetRequested: boolean;
 }
 
@@ -16,7 +15,6 @@ const userSchema: Schema<IUser> = new mongoose.Schema({
   password: String,
   emailVerified: { type: Boolean, default: false },
   otp: Number,
-  profileImage: String,
   resetRequested: { type: Boolean, default: false },
 });
 
