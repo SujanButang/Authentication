@@ -45,6 +45,16 @@ const Register = () => {
    */
   const handleRegister = async () => {
     try {
+      if (
+        formData.username == "" ||
+        formData.password == "" ||
+        formData.email
+      ) {
+        toast.error("Error", {
+          description: "Input fields cannot be empty! ☹️☹️",
+        });
+        return;
+      }
       const passwordValid = validatePassword(
         formData.password,
         confirmPassword
@@ -52,13 +62,13 @@ const Register = () => {
       if (passwordValid) {
         setLoading(true);
         const response = await makeRequest.post("/auth/register", formData);
-        toast("Success", {
+        toast.success("Success", {
           description: response.data,
         });
         setLoading(false);
         navigateToLogin();
       } else {
-        toast("Uh oh! Something seems wrong!!", {
+        toast.error("Uh oh! Something seems wrong!!", {
           description: `Password should be eight characters,one letter, one number and one
           special character.`,
         });

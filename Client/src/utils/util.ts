@@ -32,7 +32,7 @@ export const handleError = (error:unknown)=>{
           ? (error as IHTTPError)?.response?.data?.message
           : "";
 
-      toast("Uh oh! Something seems wrong!!", {
+      toast.error("Uh oh! Something seems wrong!!", {
         description: errorMessage,
       });
 }

@@ -19,6 +19,7 @@ import { DialogTrigger } from "@radix-ui/react-dialog";
 import { Label } from "@radix-ui/react-label";
 import React, { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const Login = () => {
   const [loginData, setLoginData] = useState<ILoginData>({
@@ -49,6 +50,12 @@ const Login = () => {
    */
   const handleLogin = async () => {
     try {
+      if (loginData.email == "" || loginData.password == "") {
+        toast.error("Error", {
+          description: "Input fields cannot be empty! ☹️☹️",
+        });
+        return;
+      }
       setLoading(true);
       const response = await makeRequest.post("/auth/login", loginData);
       localStorage.setItem("accessToken", response.data.accessToken);

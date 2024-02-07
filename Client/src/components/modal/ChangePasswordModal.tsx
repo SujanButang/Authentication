@@ -38,6 +38,12 @@ export function ChangePasswordModal() {
   };
   const handlePasswordChange = async () => {
     try {
+      if (passwordDetails.password == "" || passwordDetails.newPassword == "") {
+        toast.error("Error", {
+          description: "Input fields cannot be empty! ☹️☹️",
+        });
+        return;
+      }
       const passwordValid = validatePassword(
         passwordDetails.newPassword,
         confirmPassword
@@ -48,19 +54,19 @@ export function ChangePasswordModal() {
           "/auth/changePassword",
           passwordDetails
         );
-        toast("Success", {
+        toast.success("Success", {
           description: response.data,
         });
         setLoading(false);
         navigate("/");
       } else {
-        toast("Uh oh! Something seems wrong!!", {
+        toast.error("Uh oh! Something seems wrong!!", {
           description: `Password should be eight characters,one letter, one number and one
                 special character.`,
         });
       }
     } catch (error) {
-      handleError(error)
+      handleError(error);
       setLoading(false);
     }
   };

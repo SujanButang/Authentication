@@ -51,14 +51,20 @@ const VerifyEmailModal = () => {
    * On failure, handles the error, displays an error toast, and sets loading state to false.
    */
   const verifyEmail = async () => {
+    if (otp == "") {
+      toast.error("Error", {
+        description: "Input fields cannot be empty! ☹️☹️",
+      });
+      return;
+    }
     try {
       setLoading(true);
       const response = await makeRequest.post("/auth/verifyOtp", { otp });
-      toast("Success", {
+      toast.success("Success", {
         description: response.data,
       });
       setLoading(false);
-      navigate("/")
+      navigate("/");
     } catch (error) {
       handleError(error);
       setLoading(false);

@@ -33,6 +33,12 @@ const ForgotPassword = () => {
    */
   const requestReset = async () => {
     try {
+      if (email == "") {
+        toast.error("Error", {
+          description: "Input fields cannot be empty! ☹️☹️",
+        });
+        return;
+      }
       setLoading(true);
       const response = await makeRequest.post("/auth/reqReset", { email });
       toast("Success", {
@@ -55,6 +61,12 @@ const ForgotPassword = () => {
    */
   const verifyOtp = async () => {
     try {
+      if (otp == "") {
+        toast.error("Error", {
+          description: "Input fields cannot be empty! ☹️☹️",
+        });
+        return;
+      }
       setLoading(true);
       const response = await makeRequest.post("/auth/verifyResetOtp", {
         email,
@@ -79,6 +91,12 @@ const ForgotPassword = () => {
    */
   const resetPassword = async () => {
     try {
+      if (password == "") {
+        toast.error("Error", {
+          description: "Input fields cannot be empty! ☹️☹️",
+        });
+        return;
+      }
       const passwordValid = validatePassword(password, confirmPassword);
       if (passwordValid) {
         const response = await makeRequest.post("/auth/resetPassword", {
@@ -90,7 +108,7 @@ const ForgotPassword = () => {
         });
         setLoading(false);
       } else {
-        toast("Uh oh! Something seems wrong!!", {
+        toast.error("Uh oh! Something seems wrong!!", {
           description: `Password should be eight characters,one letter, one number and one
                       special character.`,
         });
