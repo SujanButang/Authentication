@@ -1,134 +1,256 @@
-import userModel, { IUser } from "../models/userModel";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-
-import RandGenerator from "../utils/util";
-import { sendMail } from "../utils/nodemailer";
-
+import NotAcceptableError from "../errors/NotAcceptableError";
+import NotFoundError from "../errors/NotfoundError";
 import {
   ILoginMessageResponse,
   IMessageResponse,
 } from "../interfaces/responseInterface";
-
-import NotFoundError from "../errors/NotfoundError";
-import BadRequestError from "../errors/BadRequestError";
-import NotAcceptableError from "../errors/NotAcceptableError";
-
+import userModel, { IUser } from "../models/userModel";
+import bcrypt from "bcrypt";
+import { sendMail } from "../utils/nodemailer";
+import { generateRandomNumber } from "../utils/util";
+import { SALT_ROUNDS, maxOTP, minOTP } from "../constants";
+import jwt from "jsonwebtoken";
 import { ACCESS_TOKEN_EXPIRY, REFRESH_TOKEN_EXPIRY } from "../constants/jwt";
+import BadRequestError from "../errors/BadRequestError";
 
 /**
- * Checks if the provided email already exists. If not, sends a verification email and
- * creates a new user record with a generated OTP for verification.
- * @param email - The email to be verified and registered.
- * @returns A Promise resolving to an IMessageResponse indicating the status and message.
+ * Creates a new user with the provided registration details.
+ * @param email - The email address of the new user.
+ * @param username - The desired username for the new user.
+ * @param password - The password for the new user.
+ * @param profileImage - The URL or path to the profile image for the new user.
+ * @returns A Promise that resolves to a message response indicating the success of the user registration.
+ * @throws NotAcceptableError if a user with the provided email already exists.
  */
-export const verifyUserEmail = async (
-  email: string
-): Promise<IMessageResponse> => {
-  const otp = RandGenerator(1000, 9999);
-
-  const user: IUser | null = await userModel.findOne({ email: email });
-  if (user && user.emailVerified == false) {
-    sendMail({ email, otp });
-    user.otp = otp;
-    user.save();
-  } else if (user?.emailVerified) {
-    throw new BadRequestError("User already exists! ☹️");
-  } else {
-    sendMail({ email, otp });
-    await userModel.create({ email, otp });
-  }
-
-  return { message: "Verification mail sent succefully! 🎉", status: 200 };
-};
-
-/**
- * Checks and verifies the provided OTP for a user, updating the account's verification status.
- * @param email - The email of the user.
- * @param otp - The One-Time Password to be verified.
- * @returns A Promise resolving to an IMessageResponse indicating the status and message.
- */
-export const verifyOTP = async (
-  email: string,
-  otp: number
-): Promise<IMessageResponse> => {
-  const user: IUser | null = await userModel.findOne({ email });
-  if (!user) {
-    throw new NotFoundError("Uh Oh! Email not found! ☹️");
-  }
-  if (parseInt(user.password) == otp) {
-    user.emailVerified = true;
-    await user.save();
-    return { message: "OTP verified. 🎉", status: 200 };
-  } else {
-    throw new NotAcceptableError("OTP is not valid! ☹️");
-  }
-};
-
-/**
- * Registers a user with the provided email, username, and password.
- * @param email - The email of the user.
- * @param username - The desired username for the user.
- * @param password - The password for the user.
- * @returns A Promise resolving to an IMessageResponse indicating the status and message.
- */
-export const registerUser = async (
+export const createUser = async (
   email: string,
   username: string,
-  password: string
+  password: string,
+  profileImage: string
 ): Promise<IMessageResponse> => {
-  const saltRound = 10;
-  const hashedPassword = bcrypt.hashSync(password, saltRound);
-  const user: IUser | null = await userModel.findOne({ email });
-  if (!user) throw new NotFoundError("User not found! ☹️");
-  if (!user.emailVerified)
-    throw new NotAcceptableError("Email is not verified.");
-  user.username = username;
-  user.password = hashedPassword;
+  const userExist = await userModel.findOne({ email });
+  if (userExist) throw new NotAcceptableError("User already exists! ☹️");
+
+  const hashedPassword = bcrypt.hashSync(password, SALT_ROUNDS);
+  const newUser = await userModel.create({
+    email,
+    password: hashedPassword,
+    username,
+    profileImage,
+  });
+  await newUser.save();
+  return { message: "User registration successfull. 🎉🎉", status: 200 };
+};
+
+/**
+ * Initiates the email verification process for a user by generating and sending a one-time password (OTP).
+ * @param userId - The unique identifier of the user to verify.
+ * @returns A Promise that resolves to a message response indicating the OTP has been sent for email verification.
+ */
+export const verifyEmail = async (
+  userId: string
+): Promise<IMessageResponse> => {
+  const user = await findUserById(userId);
+  const email = user.email;
+  const otp = generateRandomNumber(minOTP, maxOTP);
+  user.otp = otp;
   await user.save();
+  sendMail({ email, otp });
   return {
-    message: "User registration successful. 🎉",
+    message: "A four digit OTP has been sent to the email. 🎉🎉",
     status: 200,
   };
 };
 
 /**
- * Handles the authentication and login process for a user.
- * @param email - The email of the user attempting to log in.
- * @param password - The password provided by the user for login.
- * @returns A Promise resolving to an IMessageResponse with login result and tokens.
+ * Verifies the user's email by checking if the provided OTP (One-Time Password) matches the stored OTP for the user.
+ * If the OTP is valid, the user's email is marked as verified, and the stored OTP is cleared.
+ * @param id - The unique identifier of the user to verify.
+ * @param otp - The OTP provided by the user for email verification.
+ * @returns A Promise that resolves to a message response indicating the success of email verification.
+ * @throws NotAcceptableError if the provided OTP is invalid.
  */
-export const login = async (
+export const verifyOtp = async (
+  id: string,
+  otp: number
+): Promise<IMessageResponse> => {
+  const user = await findUserById(id);
+  if (otp == user.otp) {
+    user.emailVerified = true;
+    user.otp = null;
+    await user.save();
+    return {
+      message: "Email has been verified successfully. 🎉🎉",
+      status: 200,
+    };
+  }
+  throw new NotAcceptableError("Invalid OTP provided! ☹️☹️");
+};
+
+/**
+ * Authenticates a user by verifying the provided email and password.
+ * Upon successful authentication, it generates access and refresh tokens for the user.
+ * @param email - The email address of the user attempting to sign in.
+ * @param password - The password provided by the user for authentication.
+ * @returns A Promise that resolves to a login message response containing access and refresh tokens.
+ * @throws UnauthorizedError if the provided email or password is incorrect.
+ */
+export const signInUser = async (
   email: string,
   password: string
 ): Promise<ILoginMessageResponse> => {
-  const user: IUser | null = await userModel.findOne({ email });
-  if (!user) throw new NotFoundError("User not found! ☹️");
-  const passwordMatch = bcrypt.compareSync(password, user.password);
-  if (!passwordMatch) throw new BadRequestError("Invalid Credentials! ☹️");
-
-  const accessToken = jwt.sign(
-    { userId: user.id },
-    process.env.JWT_SECRET as string,
-    {
-      expiresIn: ACCESS_TOKEN_EXPIRY,
-    }
+  const user = await findUserByEmail(email);
+  matchPassword(password, user.password);
+  const accessToken = generateToken(
+    user.id,
+    process.env.JWT_ACCESS_SECRET as string,
+    ACCESS_TOKEN_EXPIRY
   );
-
-  const refreshToken = jwt.sign(
-    { userId: user.id },
-    process.env.JWT_SECRET as string,
-    {
-      expiresIn: REFRESH_TOKEN_EXPIRY,
-    }
+  const refreshToken = generateToken(
+    user.id,
+    process.env.JWT_REFRESH_SECRET as string,
+    REFRESH_TOKEN_EXPIRY
   );
-
   return {
-    message: "User login successful. 🎉",
+    message: "User signed in successfully. 🎉🎉",
     status: 200,
-    data: {
-      accessToken,
-      refreshToken,
-    },
+    data: { accessToken, refreshToken },
   };
+};
+
+/**
+ * Initiates the password reset process by generating and sending a one-time password (OTP) to the user's email.
+ * @param email - The email address of the user requesting a password reset.
+ * @returns A Promise that resolves to a message response indicating the OTP has been sent for password reset.
+ */
+export const requestPasswordReset = async (email: string) => {
+  const user = await findUserByEmail(email);
+
+  const otp = generateRandomNumber(minOTP, maxOTP);
+  user.otp = otp;
+  await user.save();
+  sendMail({ email, otp });
+  return {
+    message: "A four digit OTP has been sent to the email. 🎉🎉",
+    status: 200,
+  };
+};
+
+/**
+ * Verifies the provided OTP (One-Time Password) for a password reset request.
+ * If the OTP is valid, the user's email is marked as verified, and the resetRequested flag is set.
+ * @param email - The email address of the user for whom the password reset is requested.
+ * @param otp - The OTP provided by the user for verification.
+ * @returns A Promise that resolves to a message response indicating the success of OTP verification.
+ * @throws NotAcceptableError if the provided OTP is invalid.
+ */
+export const verifyResetOtp = async (
+  email: string,
+  otp: number
+): Promise<IMessageResponse> => {
+  const user = await findUserByEmail(email);
+  if (otp == user.otp) {
+    user.emailVerified = true;
+    user.resetRequested = true;
+    user.otp = null;
+    await user.save();
+    return {
+      message: "OTP has been verified successfully. 🎉🎉",
+      status: 200,
+    };
+  }
+  throw new NotAcceptableError("Invalid OTP provided! ☹️☹️");
+};
+
+/**
+ * Changes the password for a user by verifying the current password and updating it with a new one.
+ * @param userId - The unique identifier of the user whose password is to be changed.
+ * @param password - The current password for authentication.
+ * @param newPassword - The new password to set for the user.
+ * @returns A Promise that resolves to a message response indicating the success of password change.
+ * @throws UnauthorizedError if the provided current password is incorrect.
+ */
+export const changePassword = async (
+  userId: string,
+  password: string,
+  newPassword: string
+): Promise<IMessageResponse> => {
+  const user: IUser = await findUserById(userId);
+  matchPassword(password, user.password);
+  const newHashedPassword = bcrypt.hashSync(newPassword, SALT_ROUNDS);
+  user.password = newHashedPassword;
+  await user.save();
+  return { message: "Password changed successfully. 🎉🎉", status: 200 };
+};
+
+/**
+ * Resets the password for a user after verifying that a password reset was requested for the associated email.
+ * @param email - The email address of the user for whom the password is to be reset.
+ * @param password - The new password to set for the user.
+ * @returns A Promise that resolves to a message response indicating the success of password reset.
+ * @throws BadRequestError if a password reset was not requested for the provided email.
+ */
+export const resetPassword = async (
+  email: string,
+  password: string
+): Promise<IMessageResponse> => {
+  const user = await findUserByEmail(email);
+  if (!user.resetRequested) throw new BadRequestError("Bad Request! ☹️☹️");
+  const hashedPassword = bcrypt.hashSync(password, SALT_ROUNDS);
+  user.password = hashedPassword;
+  user.resetRequested = false;
+  await user.save();
+  return { message: "Password has been reset successfully. 🎉🎉", status: 200 };
+};
+
+/**
+ * Finds a user in the database based on their email address.
+ * @param email - The email address of the user to be retrieved.
+ * @returns A Promise that resolves to the user object.
+ * @throws NotFoundError if the user with the provided email is not found.
+ */
+const findUserByEmail = async (email: string): Promise<IUser> => {
+  const user: IUser | null = await userModel.findOne({ email });
+  if (!user) throw new NotFoundError("User not found! ☹️☹️");
+  return user;
+};
+
+/**
+ * Finds a user in the database based on their unique identifier.
+ * @param id - The unique identifier of the user to be retrieved.
+ * @returns A Promise that resolves to the user object.
+ * @throws NotFoundError if the user with the provided ID is not found.
+ */
+const findUserById = async (id: string): Promise<IUser> => {
+  const user: IUser | null = await userModel.findById(id);
+  if (!user) throw new NotFoundError("User not found! ☹️☹️");
+  return user;
+};
+
+/**
+ * Compares a plain-text password with a hashed password to check for a match.
+ * @param password - The plain-text password to be checked.
+ * @param userPassword - The hashed password stored in the database.
+ * @throws NotAcceptableError if the passwords do not match.
+ */
+const matchPassword = (password: string, userPassword: string) => {
+  const matched = bcrypt.compareSync(password, userPassword);
+  if (matched) return true;
+  throw new NotAcceptableError("Inavlid Credentials! ☹️☹️");
+};
+
+/**
+ * Generates a JSON Web Token (JWT) for a user.
+ * @param userId - The unique identifier of the user for whom the token is generated.
+ * @param secretKey - The secret key used to sign the JWT.
+ * @param expiry - The expiration time for the JWT in seconds.
+ * @returns The generated JWT as a string.
+ */
+const generateToken = (
+  userId: string,
+  secretKey: string,
+  expiry: number
+): string => {
+  console.log(userId, secretKey, expiry);
+  return jwt.sign({ userId: userId }, secretKey, { expiresIn: expiry });
 };

@@ -8,13 +8,13 @@ export const sendMail = (params: { email: string; otp: number }) => {
   const transporter = createTransport({
     service: "gmail",
     auth: {
-      user: "tale.trail.site@gmail.com",
-      pass: "vwnzxvxivpjtaakl",
+      user: "sujanbutang@gmail.com",
+      pass: "xgcrblzhmwbgslex",
     },
   });
 
   const mailOptions = {
-    from: "tale.trail.site@gmail.com",
+    from: "sujanbutang@gmail.com",
     to: params.email,
     subject: "Email Verification",
     html: writeHTML(params.otp),
