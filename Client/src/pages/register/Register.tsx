@@ -48,7 +48,7 @@ const Register = () => {
       if (
         formData.username == "" ||
         formData.password == "" ||
-        formData.email
+        formData.email == ""
       ) {
         toast.error("Error", {
           description: "Input fields cannot be empty! ☹️☹️",
