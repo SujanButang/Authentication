@@ -9,7 +9,7 @@ import { genericErrorHandler, notFoundError } from "./middlewares/errorHandler";
 dotenv.config();
 
 const app = express();
-const serverPort = process.env.SERVER_PORT;
+const serverPort = process.env.SERVER_PORT || 8000;
 
 app.use(express.json());
 app.use(
