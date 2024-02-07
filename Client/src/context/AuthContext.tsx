@@ -1,4 +1,10 @@
-import { ReactNode, createContext, useState } from "react";
+import {
+  ReactNode,
+  createContext,
+  useState,
+  Dispatch,
+  SetStateAction,
+} from "react";
 
 type Props = {
   children?: ReactNode;
@@ -6,20 +12,19 @@ type Props = {
 
 type IAuthContext = {
   authenticated: boolean;
-  setAuthenticated: React.Dispatch<React.SetStateAction<boolean>>;
+  setAuthenticated: Dispatch<SetStateAction<boolean>>;
 };
 
 const initialValue = {
   authenticated: localStorage.getItem("accessToken") ? true : false,
-  setAuthenticated: () => {},
-  login: async () => {},
+  setAuthenticated: () => {}, // This default function is not needed here
 };
 
 const AuthContext = createContext<IAuthContext>(initialValue);
 
 const AuthProvider = ({ children }: Props) => {
-  const [authenticated, setAuthenticated] = useState<boolean>(
-    initialValue.authenticated
+  const [authenticated, setAuthenticated] = useState(() =>
+    localStorage.getItem("accessToken") ? true : false
   );
 
   return (
@@ -28,5 +33,6 @@ const AuthProvider = ({ children }: Props) => {
     </AuthContext.Provider>
   );
 };
+
 
 export { AuthContext, AuthProvider };

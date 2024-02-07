@@ -40,7 +40,7 @@ const Login = () => {
     setLoginData({ ...loginData, [e.target.id]: e.target.value });
   };
 
-  const { authenticated,setAuthenticated } = useContext(AuthContext);
+  const { setAuthenticated } = useContext(AuthContext);
 
   /**
    * Handles the login process by sending a POST request to the '/auth/login' endpoint.
@@ -51,11 +51,10 @@ const Login = () => {
     try {
       setLoading(true);
       const response = await makeRequest.post("/auth/login", loginData);
-      setAuthenticated(true);
-      console.log(authenticated)
-      navigate("/");
       localStorage.setItem("accessToken", response.data.accessToken);
       localStorage.setItem("refreshToken", response.data.refreshToken);
+      setAuthenticated(true);
+      window.location.href = window.origin;
       setLoading(false);
     } catch (error) {
       handleError(error);
