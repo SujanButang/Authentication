@@ -251,6 +251,5 @@ const generateToken = (
   secretKey: string,
   expiry: number
 ): string => {
-  console.log(userId, secretKey, expiry);
   return jwt.sign({ userId: userId }, secretKey, { expiresIn: expiry });
 };
